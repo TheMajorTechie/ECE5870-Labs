@@ -63,8 +63,9 @@ void SystemClock_Config(void);
 int main(void) {
 	SystemClock_Config(); //Configure the system clock
 
-	//enable GPIOC peripheral clock
+	//enable GPIOC and GPIOA peripheral clocks
 	RCC->AHBENR |= RCC_AHBENR_GPIOCEN; 
+	RCC->AHBENR |= RCC_AHBENR_GPIOAEN; 
 	
 	/*
 •	Configure LED pins on GPIOC (PC6-PC9) in the following way:
@@ -108,24 +109,24 @@ int main(void) {
 	
 	uint32_t debouncer = 0;
 	while (1) {
-		HAL_Delay(200); // Delay 200ms
+		//HAL_Delay(200); // Delay 200ms
 		
-//		debouncer = (debouncer << 1); // Always shift every loop iteration
-//		
-//		if (GPIOA->IDR & 0x1) { // If input signal is set/high debouncer |= 0x01; // Set lowest bit of bit-vector
-//			debouncer |= 0x1;
-//		}
-//		if (debouncer == 0xFFFFFFFF) {
-//		// This code triggers repeatedly when button is steady high!
-//		}
-//		if (debouncer == 0x00000000) {
-//		// This code triggers repeatedly when button is steady low!
-//		}
-//		if (debouncer == 0x7FFFFFFF) {
+		debouncer = (debouncer << 1); // Always shift every loop iteration
+		
+		if (GPIOA->IDR & 0x1) { // If input signal is set/high debouncer |= 0x01; // Set lowest bit of bit-vector
+			debouncer |= 0x1;
+		}
+		if (debouncer == 0xFFFFFFFF) {
+		// This code triggers repeatedly when button is steady high!
+		}
+		if (debouncer == 0x00000000) {
+		// This code triggers repeatedly when button is steady low!
+		}
+		if (debouncer == 0x7FFFFFFF) {
 		// This code triggers only once when transitioning to steady high!
 			GPIOC->ODR ^= (1 << 6);
 			GPIOC->ODR ^= (1 << 7);
-//		}		
+		}		
 	}
 }
 
