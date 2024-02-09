@@ -133,10 +133,10 @@ SystemClock_Config(); //Configure the system clock
 	
 	//enable the EXTI input line 0 IRQ through the NVIC and set its priority to 1
 	NVIC_EnableIRQ(5);					//can use EXTI0_1_IRQn instead of 5
-	NVIC_SetPriority(5, 1);
+	NVIC_SetPriority(5, 3);			//change priority to 3 instead of 1 to avoid hanging up the microcontroller
 	
-	
-	//systick has a priority of 3
+	//set systick to a priority of 2
+	NVIC_SetPriority(SysTick_IRQn, 2);
 
   /* Infinite loop */
   /* USER CODE BEGIN WHILE */
@@ -152,7 +152,18 @@ SystemClock_Config(); //Configure the system clock
 }
 
 void EXTI0_1_IRQHandler(void) {
+	volatile int counter = 0;
+	
 	//toggle orange and green LEDs in the EXTI interrupt handler
+	GPIOC->ODR ^= (1 << 8);
+	GPIOC->ODR ^= (1 << 9);
+	
+	//set up a ~1.5s counter without using the HAL
+	while(counter < 3000000) {
+		counter++;
+	}
+	
+	//now toggle them again
 	GPIOC->ODR ^= (1 << 8);
 	GPIOC->ODR ^= (1 << 9);
 	EXTI->PR |= (1);

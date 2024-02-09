@@ -1865,9 +1865,9 @@
       <ActiveTab>0</ActiveTab>
       <Doc>
         <Name>../Core/Src/main.c</Name>
-        <ColumnNumber>18</ColumnNumber>
-        <TopLine>137</TopLine>
-        <CurrentLine>158</CurrentLine>
+        <ColumnNumber>23</ColumnNumber>
+        <TopLine>118</TopLine>
+        <CurrentLine>136</CurrentLine>
         <Folding>1</Folding>
         <ContractedFolders></ContractedFolders>
         <PaneID>0</PaneID>
@@ -1883,9 +1883,9 @@
       </Doc>
       <Doc>
         <Name>..\Drivers\CMSIS\Device\ST\STM32F0xx\Include\stm32f072xb.h</Name>
-        <ColumnNumber>2</ColumnNumber>
-        <TopLine>73</TopLine>
-        <CurrentLine>81</CurrentLine>
+        <ColumnNumber>46</ColumnNumber>
+        <TopLine>61</TopLine>
+        <CurrentLine>68</CurrentLine>
         <Folding>1</Folding>
         <ContractedFolders></ContractedFolders>
         <PaneID>0</PaneID>
@@ -1893,7 +1893,7 @@
       <Doc>
         <Name>..\Drivers\CMSIS\Include\core_cm0.h</Name>
         <ColumnNumber>34</ColumnNumber>
-        <TopLine>698</TopLine>
+        <TopLine>635</TopLine>
         <CurrentLine>623</CurrentLine>
         <Folding>1</Folding>
         <ContractedFolders></ContractedFolders>

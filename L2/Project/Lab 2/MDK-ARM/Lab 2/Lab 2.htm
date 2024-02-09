@@ -3,9 +3,9 @@
 <title>Static Call Graph - [Lab 2\Lab 2.axf]</title></head>
 <body><HR>
 <H1>Static Call Graph for image Lab 2\Lab 2.axf</H1><HR>
-<BR><P>#&#060CALLGRAPH&#062# ARM Linker, 6210000: Last Updated: Fri Feb  9 08:28:38 2024
+<BR><P>#&#060CALLGRAPH&#062# ARM Linker, 6210000: Last Updated: Fri Feb  9 09:00:53 2024
 <BR><P>
-<H3>Maximum Stack Usage =        152 bytes + Unknown(Functions without stacksize, Cycles, Untraceable Function Pointers)</H3><H3>
+<H3>Maximum Stack Usage =        160 bytes + Unknown(Functions without stacksize, Cycles, Untraceable Function Pointers)</H3><H3>
 Call chain for Maximum Stack Depth:</H3>
 __rt_entry_main &rArr; main &rArr; HAL_RCC_OscConfig
 <P>
@@ -186,7 +186,7 @@ Global Symbols
 <P><STRONG><a name="[67]"></a>__rt_entry_postsh_1</STRONG> (Thumb, 0 bytes, Stack size unknown bytes, __rtentry2.o(.ARM.Collect$$rtentry$$00000009))
 
 <P><STRONG><a name="[30]"></a>__rt_entry_main</STRONG> (Thumb, 0 bytes, Stack size unknown bytes, __rtentry2.o(.ARM.Collect$$rtentry$$0000000D))
-<BR><BR>[Stack]<UL><LI>Max Depth = 152 + Unknown Stack Size
+<BR><BR>[Stack]<UL><LI>Max Depth = 160 + Unknown Stack Size
 <LI>Call Chain = __rt_entry_main &rArr; main &rArr; HAL_RCC_OscConfig
 </UL>
 <BR>[Calls]<UL><LI><a href="#[31]">&gt;&gt;</a>&nbsp;&nbsp;&nbsp;main
@@ -357,7 +357,9 @@ Global Symbols
 
 <P><STRONG><a name="[71]"></a>__semihosting_library_function</STRONG> (Thumb, 0 bytes, Stack size unknown bytes, indicate_semi.o(.text), UNUSED)
 
-<P><STRONG><a name="[b]"></a>EXTI0_1_IRQHandler</STRONG> (Thumb, 32 bytes, Stack size 0 bytes, main.o(.text.EXTI0_1_IRQHandler))
+<P><STRONG><a name="[b]"></a>EXTI0_1_IRQHandler</STRONG> (Thumb, 108 bytes, Stack size 20 bytes, main.o(.text.EXTI0_1_IRQHandler))
+<BR><BR>[Stack]<UL><LI>Max Depth = 20<LI>Call Chain = EXTI0_1_IRQHandler
+</UL>
 <BR>[Address Reference Count : 1]<UL><LI> startup_stm32f072xb.o(RESET)
 </UL>
 <P><STRONG><a name="[3b]"></a>HAL_Delay</STRONG> (Thumb, 32 bytes, Stack size 16 bytes, stm32f0xx_hal.o(.text.HAL_Delay))
@@ -453,8 +455,8 @@ Global Symbols
 <P><STRONG><a name="[26]"></a>SystemInit</STRONG> (Thumb, 2 bytes, Stack size 0 bytes, system_stm32f0xx.o(.text.SystemInit))
 <BR>[Address Reference Count : 1]<UL><LI> startup_stm32f072xb.o(.text)
 </UL>
-<P><STRONG><a name="[31]"></a>main</STRONG> (Thumb, 320 bytes, Stack size 104 bytes, main.o(.text.main))
-<BR><BR>[Stack]<UL><LI>Max Depth = 152<LI>Call Chain = main &rArr; HAL_RCC_OscConfig
+<P><STRONG><a name="[31]"></a>main</STRONG> (Thumb, 340 bytes, Stack size 112 bytes, main.o(.text.main))
+<BR><BR>[Stack]<UL><LI>Max Depth = 160<LI>Call Chain = main &rArr; HAL_RCC_OscConfig
 </UL>
 <BR>[Calls]<UL><LI><a href="#[3b]">&gt;&gt;</a>&nbsp;&nbsp;&nbsp;HAL_Delay
 <LI><a href="#[41]">&gt;&gt;</a>&nbsp;&nbsp;&nbsp;HAL_RCCEx_PeriphCLKConfig
