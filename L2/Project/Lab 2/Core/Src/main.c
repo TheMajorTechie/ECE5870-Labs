@@ -81,11 +81,11 @@ SystemClock_Config(); //Configure the system clock
 	RCC->AHBENR |= RCC_AHBENR_GPIOAEN; 
 	
 	/*
-•	Configure LED pins on GPIOC (PC6-PC9) in the following way:
-	– General-purpose output mode using the MODER register.
-	– Push-pull output type using the OTYPER register.
-	– Low speed using the OSPEEDR register.
-	– No pull-up/down resistors using the PUPDR register.
+ï¿½	Configure LED pins on GPIOC (PC6-PC9) in the following way:
+	ï¿½ General-purpose output mode using the MODER register.
+	ï¿½ Push-pull output type using the OTYPER register.
+	ï¿½ Low speed using the OSPEEDR register.
+	ï¿½ No pull-up/down resistors using the PUPDR register.
 	6 = red | 7 = blue | 8 = orange | 9 = green
 	*/
 	
@@ -110,10 +110,10 @@ SystemClock_Config(); //Configure the system clock
 	GPIOC->ODR |= (1 << 9);		  //green
 	
 	/*
-	• USER Button pin (PA0) should be configured to:
-	– Digital input mode using the MODER register. (floating internal pull-up/down)
-	– Low speed using the OSPEEDR register.
-	– Pull-down resistor using the PUPDR register	
+	ï¿½ USER Button pin (PA0) should be configured to:
+	ï¿½ Digital input mode using the MODER register. (floating internal pull-up/down)
+	ï¿½ Low speed using the OSPEEDR register.
+	ï¿½ Pull-down resistor using the PUPDR register	
 	*/
 	
 	GPIOA->MODER &= ~((1) | (1 << 1));		//is it safe to assume that this will already be 00 out of reset?
@@ -166,7 +166,7 @@ void EXTI0_1_IRQHandler(void) {
 	//now toggle them again
 	GPIOC->ODR ^= (1 << 8);
 	GPIOC->ODR ^= (1 << 9);
-	EXTI->PR |= (1);
+	EXTI->PR |= (1);          //mark the interrupt as handled
 }
 
 /**
