@@ -127,6 +127,7 @@ int main(void)
 	
 	//enable and set up USART interrupt priority in NVIC
 	NVIC_EnableIRQ(USART3_4_IRQn);	//IRQ 29
+	NVIC_SetPriority(USART3_4_IRQn, 1);
 		
 	//enable USART transmit, receive, and the USART itself
 	USART3->CR1 |= ((USART_CR1_TE) | (USART_CR1_RE) | (USART_CR1_UE));
@@ -221,7 +222,7 @@ int main(void)
 				case 'r': {	//6
 					transmit_string("\nMode? (0-2): ");
 					while((USART3->ISR & USART_ISR_RXNE) != USART_ISR_RXNE) { }		//prevent the text from being sent like crazy
-					if(newDataAvailable)
+					if(newDataAvailable) {
 						switch(receivedData) {
 							case '0': {
 								GPIOC->ODR &= ~(1 << 6);
@@ -240,13 +241,15 @@ int main(void)
 								break;
 							}
 						}
+						receivedData = 0;
+					}
 					transmit_string("\nCommand: ");
 					break;
 				}
 				case 'b': {	//7
 					transmit_string("\nMode? (0-2): ");
 					while((USART3->ISR & USART_ISR_RXNE) != USART_ISR_RXNE) { }		//prevent the text from being sent like crazy
-					if(newDataAvailable)
+					if(newDataAvailable) {
 						switch(receivedData) {
 							case '0': {
 								GPIOC->ODR &= ~(1 << 7);
@@ -265,13 +268,15 @@ int main(void)
 								break;
 							}
 						}
+						receivedData = 0;
+					}
 					transmit_string("\nCommand: ");
 					break;
 				}
 				case 'o': {	//8
 					transmit_string("\nMode? (0-2): ");
 					while((USART3->ISR & USART_ISR_RXNE) != USART_ISR_RXNE) { }		//prevent the text from being sent like crazy
-					if(newDataAvailable)
+					if(newDataAvailable) {
 						switch(receivedData) {
 							case '0': {
 								GPIOC->ODR &= ~(1 << 8);
@@ -290,13 +295,15 @@ int main(void)
 								break;
 							}
 						}
+						receivedData = 0;
+					}
 					transmit_string("\nCommand: ");
 					break;
 				}
 				case 'g': {	//9
 					transmit_string("\nMode? (0-2): ");
 					while((USART3->ISR & USART_ISR_RXNE) != USART_ISR_RXNE) { }		//prevent the text from being sent like crazy
-					if(newDataAvailable)
+					if(newDataAvailable) {
 						switch(receivedData) {
 							case '0': {
 								GPIOC->ODR &= ~(1 << 9);
@@ -315,6 +322,8 @@ int main(void)
 								break;
 							}
 						}
+						receivedData = 0;
+					}
 					transmit_string("\nCommand: ");
 					break;
 				}
@@ -324,6 +333,7 @@ int main(void)
 					while((USART3->ISR & USART_ISR_RXNE) != USART_ISR_RXNE) { }		//prevent the text from being sent like crazy
 				}
 			}
+			receivedData = 0;
 		}
 		
   }
