@@ -56,6 +56,10 @@ void Error_Handler(void);
 
 /* USER CODE END EFP */
 
+//global variables
+extern volatile char receivedData;
+extern volatile char newDataAvailable;
+
 /* Private defines -----------------------------------------------------------*/
 #define NCS_MEMS_SPI_Pin GPIO_PIN_0
 #define NCS_MEMS_SPI_GPIO_Port GPIOC

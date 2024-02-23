@@ -83,9 +83,11 @@ void transmit_string(char* stringToSend) {
 		transmit_char(*stringToSend);
 		stringToSend++;
 	}
-	
 	return;
 }
+
+volatile char receivedData;
+volatile char newDataAvailable;
 
 /* USER CODE END 0 */
 
@@ -119,6 +121,12 @@ int main(void)
 	//can use HAL_RCC_GetHCLKFreq() to get system clock freq
 	//we can safely assume that the processor is running at 8MHz
 	USART3->BRR = (HAL_RCC_GetHCLKFreq() / 115200);
+	
+	//enable USART3 receive regeister not empty interrupt
+	USART3->CR1 |= (USART_CR1_RXNEIE);
+	
+	//enable and set up USART interrupt priority in NVIC
+	NVIC_EnableIRQ(USART3_4_IRQn);	//IRQ 29
 		
 	//enable USART transmit, receive, and the USART itself
 	USART3->CR1 |= ((USART_CR1_TE) | (USART_CR1_RE) | (USART_CR1_UE));
@@ -151,10 +159,7 @@ int main(void)
 	
 	//A variable to store what character has been sent
 	char receivedChar;
-	
-	
-	
-	
+
   /* USER CODE BEGIN WHILE */
   while (1)
   {
@@ -162,12 +167,14 @@ int main(void)
 		//transmit_string("This is a test string\n");
 		//HAL_Delay(500);
 		
+		/*
 		//Check if the receive register has something in it
 		while((USART3->ISR & USART_ISR_RXNE) == USART_ISR_RXNE) {
 			receivedChar = (USART3->RDR);
 			transmit_char(receivedChar);
 		}
 		
+		//old command parser
 		switch(receivedChar) {
 				case 'r': {
 					USART3->TDR = 10;
@@ -206,12 +213,128 @@ int main(void)
 					while((USART3->ISR & USART_ISR_RXNE) != USART_ISR_RXNE) { }		//prevent the text from being sent like crazy
 					break;
 				}
+		}*/
+		
+		while((USART3->ISR & USART_ISR_RXNE) != USART_ISR_RXNE) { }		//prevent the text from being sent like crazy
+		if(newDataAvailable) {
+			switch(receivedData) {
+				case 'r': {	//6
+					transmit_string("\nMode? (0-2): ");
+					while((USART3->ISR & USART_ISR_RXNE) != USART_ISR_RXNE) { }		//prevent the text from being sent like crazy
+					if(newDataAvailable)
+						switch(receivedData) {
+							case '0': {
+								GPIOC->ODR &= ~(1 << 6);
+								break;
+							}
+							case '1': {
+								GPIOC->ODR |= (1 << 6);
+								break;
+							}
+							case '2': {
+								GPIOC->ODR ^= (1 << 6);
+								break;
+							}
+							default: {
+								transmit_string("\nInvalid input.");
+								break;
+							}
+						}
+					transmit_string("\nCommand: ");
+					break;
+				}
+				case 'b': {	//7
+					transmit_string("\nMode? (0-2): ");
+					while((USART3->ISR & USART_ISR_RXNE) != USART_ISR_RXNE) { }		//prevent the text from being sent like crazy
+					if(newDataAvailable)
+						switch(receivedData) {
+							case '0': {
+								GPIOC->ODR &= ~(1 << 7);
+								break;
+							}
+							case '1': {
+								GPIOC->ODR |= (1 << 7);
+								break;
+							}
+							case '2': {
+								GPIOC->ODR ^= (1 << 7);
+								break;
+							}
+							default: {
+								transmit_string("\nInvalid input.");
+								break;
+							}
+						}
+					transmit_string("\nCommand: ");
+					break;
+				}
+				case 'o': {	//8
+					transmit_string("\nMode? (0-2): ");
+					while((USART3->ISR & USART_ISR_RXNE) != USART_ISR_RXNE) { }		//prevent the text from being sent like crazy
+					if(newDataAvailable)
+						switch(receivedData) {
+							case '0': {
+								GPIOC->ODR &= ~(1 << 8);
+								break;
+							}
+							case '1': {
+								GPIOC->ODR |= (1 << 8);
+								break;
+							}
+							case '2': {
+								GPIOC->ODR ^= (1 << 8);
+								break;
+							}
+							default: {
+								transmit_string("\nInvalid input.");
+								break;
+							}
+						}
+					transmit_string("\nCommand: ");
+					break;
+				}
+				case 'g': {	//9
+					transmit_string("\nMode? (0-2): ");
+					while((USART3->ISR & USART_ISR_RXNE) != USART_ISR_RXNE) { }		//prevent the text from being sent like crazy
+					if(newDataAvailable)
+						switch(receivedData) {
+							case '0': {
+								GPIOC->ODR &= ~(1 << 9);
+								break;
+							}
+							case '1': {
+								GPIOC->ODR |= (1 << 9);
+								break;
+							}
+							case '2': {
+								GPIOC->ODR ^= (1 << 9);
+								break;
+							}
+							default: {
+								transmit_string("\nInvalid input.");
+								break;
+							}
+						}
+					transmit_string("\nCommand: ");
+					break;
+				}
+				default: {
+					transmit_string("\nInvalid input.");
+					transmit_string("\nCommand: ");
+					while((USART3->ISR & USART_ISR_RXNE) != USART_ISR_RXNE) { }		//prevent the text from being sent like crazy
+				}
+			}
 		}
-		
-		
 		
   }
   /* USER CODE END 3 */
+}
+
+//the interrupt handler
+void USART3_4_IRQHandler(void) {
+	receivedData = USART3->RDR;
+	transmit_char(receivedData);
+	newDataAvailable = 1;
 }
 
 /**
