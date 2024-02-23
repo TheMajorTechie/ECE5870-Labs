@@ -128,8 +128,8 @@ int main(void)
 	TIM3->CR1 |= (1);
 	
 	//Set both channels' CCRx values to 20% of the ARR
-	TIM3->CCR1 = 100;
-	TIM3->CCR2 = 25;
+	TIM3->CCR1 = 20;
+	TIM3->CCR2 = 20;
 	
 	//configure LEDs
 	GPIOC->MODER |= ((1 << 12) | (1 << 14) | (1 << 16) | (1 << 18));
