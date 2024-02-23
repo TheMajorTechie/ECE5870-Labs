@@ -117,6 +117,7 @@ int main(void)
 	
 	//set baud rate to 115200 bits/second (oversampling by 16)
 	//can use HAL_RCC_GetHCLKFreq() to get system clock freq
+	//we can safely assume that the processor is running at 8MHz
 	USART3->BRR = (HAL_RCC_GetHCLKFreq() / 115200);
 		
 	//enable USART transmit, receive, and the USART itself
