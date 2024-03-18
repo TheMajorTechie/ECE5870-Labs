@@ -65,11 +65,11 @@ static void MX_USB_PCD_Init(void);
 
 /* Private user code ---------------------------------------------------------*/
 /* USER CODE BEGIN 0 */
-void PrepareI2C2Transaction(uint32_t address, char RD_WRN) {
+void PrepareI2C2Transaction(uint32_t address, char RD_WRN, int numbytes) {
 	I2C2->CR2 &= ~((0x7F << 16) | (0x3FF << 0));	//clear NBYTES and ADD bitfields
 	
-	//set # of bytes to transmit=1, device address 0x69, RD_WRN to write, and start
-	I2C2->CR2 |= ((1 << 16) | (address << 1));
+	//set # of bytes to transmit=numbytes, device address 0x69, RD_WRN to write, and start
+	I2C2->CR2 |= ((numbytes << 16) | (address << 1));
 	
 	if(RD_WRN == 'w')						//request a write
 		I2C2->CR2 &= ~(1 << 10);
@@ -82,6 +82,32 @@ void PrepareI2C2Transaction(uint32_t address, char RD_WRN) {
 	I2C2->CR2 |= (1 << 13);
 	
 	return;
+}
+
+void TransmissionWriteHelper(uint32_t address, int numbytes, uint32_t data) {
+	
+		PrepareI2C2Transaction(address, 'w', numbytes);
+	
+		//transmission block
+		while(!(I2C2->ISR & I2C_ISR_TXIS) & !(I2C2->ISR & I2C_ISR_NACKF));
+		if(I2C2->ISR & I2C_ISR_TXIS) {
+			I2C2->TXDR = data;
+		}
+		else if(I2C2->ISR & I2C_ISR_NACKF) {
+			GPIOC->ODR |= ((1 << 6) | (1 << 7) | (1 << 8) | (1 << 9));			//turn on all LEDs for fail
+		}
+}
+
+char TransmissionReadHelper(uint32_t address, int numbytes) {
+	PrepareI2C2Transaction(address, 'r', numbytes);
+	while(!(I2C2->ISR & I2C_ISR_RXNE) & !(I2C2->ISR & I2C_ISR_NACKF));
+	if(I2C2->ISR & I2C_ISR_RXNE) {
+		return I2C2->RXDR;
+	}
+	else if(I2C2->ISR & I2C_ISR_NACKF) {
+		GPIOC->ODR |= ((1 << 6) | (1 << 7) | (1 << 8) | (1 << 9));			//turn on all LEDs for fail
+	}
+	return -1;	//return an error
 }
 /* USER CODE END 0 */
 
@@ -162,7 +188,7 @@ int main(void)
 	*/
 	
 	//call a helper method to set up a transaction in write mode with the proper address
-	PrepareI2C2Transaction(0x69, 'w');			
+	PrepareI2C2Transaction(0x69, 'w', 1);			
 	
 //	I2C2->CR2 &= ~((0x7F << 16) | (0x3FF << 0));	//clear NBYTES and ADD bitfields
 //	
@@ -195,7 +221,7 @@ int main(void)
 	while(!(I2C2->ISR & I2C_ISR_TC)) 
 		;
 	
-	PrepareI2C2Transaction(0x69, 'r');
+	PrepareI2C2Transaction(0x69, 'r', 1);
 	
 
 	//wait until either RXNE or NACKF
@@ -213,23 +239,118 @@ int main(void)
 		GPIOC->ODR &= ~((1 << 6) | (1 << 8));	//clear both LEDs
 	}
 	
-	
+	//if the transfer complete flag is set and the register contents
+	//matches the expected 0xD3 value, then turn off the blue LED
 	if(I2C2->ISR & I2C_ISR_RXNE) {
 		while(!(I2C2->ISR & I2C_ISR_TC))
 			;
 		if(I2C2->ISR & I2C_ISR_TC) {
 			if(I2C2->RXDR == 0xd3) {
-				I2C2->CR2 |= (1 << 14);
+				I2C2->CR2 |= (1 << 14);		//SET the stop bit in CR2 to release I2C bus
 				GPIOC->ODR &= ~(1 << 7);
 			}
 		}
 	}
 	
 	
+	
+//part 2----------------------------------------------------------	
+	//enable the X and Y sensing axes in the CTRL_REG1 register
+	PrepareI2C2Transaction(0x69, 'w', 2);
+	
+	//wait for TXIS or NACKF flags
+	while(!(I2C2->ISR & I2C_ISR_TXIS) & !(I2C2->ISR & I2C_ISR_NACKF)) 
+		;
+	
+	if(I2C2->ISR & I2C_ISR_TXIS) {	//check for TXIS bit set
+		GPIOC->ODR |= (1 << 7);			//set blue LED for success
+		I2C2->TXDR = 0x20;					//if success, write CTRL_REG1's address to TXDR
+	}
+	else if(I2C2->ISR & I2C_ISR_NACKF) {
+		GPIOC->ODR |= (1 << 6);			//set red LED for fail
+	}
+	else {
+		GPIOC->ODR |=	(1 << 9);			//set green LED
+		GPIOC->ODR &= ~((1 << 6) | (1 << 7));	//clear both LEDs
+	}
+	
+	while(!(I2C2->ISR & I2C_ISR_TXIS) & !(I2C2->ISR & I2C_ISR_NACKF)) 
+		;	//wait for flags again
+	if(I2C2->ISR & I2C_ISR_TXIS) {	//check for TXIS bit set
+		GPIOC->ODR |= (1 << 7);			//set blue LED for success
+		I2C2->TXDR = 0x0B;					//if success, write 1011 to CTRL_REG1 to set normal power mode, Xen and Yen
+	}
+	
+	//now wait for a transmit complete
+	while(!(I2C2->ISR & I2C_ISR_TC)) 
+		;
+	
+	uint8_t x1, x2, y1, y2;		//SET up the partial x and y values for storage
+	int16_t x, y, x_dir, y_dir;		//complete x and y with direction
+	
+	
+	
+	
   while (1)
   {
+		//clear all LEDs
+		GPIOC->ODR &= ~((1 << 6) | (1 << 7) | (1 << 8) | (1 << 9));
 		
-  }
+		//read x1
+		TransmissionWriteHelper(0x69, 1, 0x28);
+		while(!(I2C2->ISR & I2C_ISR_TC));	//wait for TC
+		x1 = TransmissionReadHelper(0x69, 1);
+		while(!(I2C2->ISR & I2C_ISR_TC));	//wait for TC
+		
+		//read x2
+		TransmissionWriteHelper(0x69, 1, 0x29);
+		while(!(I2C2->ISR & I2C_ISR_TC));	//wait for TC
+		x2 = TransmissionReadHelper(0x69, 1);
+		while(!(I2C2->ISR & I2C_ISR_TC));	//wait for TC
+		
+		x = (x1 | x2 << 8);
+		x_dir += x;
+		
+		//read y1
+		TransmissionWriteHelper(0x69, 1, 0x2a);
+		while(!(I2C2->ISR & I2C_ISR_TC));	//wait for TC
+		y1 = TransmissionReadHelper(0x69, 1);
+		while(!(I2C2->ISR & I2C_ISR_TC));	//wait for TC
+		
+		//read y2
+		TransmissionWriteHelper(0x69, 1, 0x2b);
+		while(!(I2C2->ISR & I2C_ISR_TC));	//wait for TC
+		y2 = TransmissionReadHelper(0x69, 1);
+		while(!(I2C2->ISR & I2C_ISR_TC));	//wait for TC
+		
+		y = (y1 | y2 << 8);
+		y_dir += y;
+		
+		
+		
+		
+		//orange & green
+		if(x_dir < 0) {
+			GPIOC->ODR |= (1 << 8);		//enable orange
+			GPIOC->ODR &= ~(1 << 9);	//disable green
+		}
+		else {
+			GPIOC->ODR &= ~(1 << 8);	//disable orange
+			GPIOC->ODR |= (1 << 9);		//enable green
+		}
+		
+		//red & blue
+		if(y_dir < 0) {
+			GPIOC->ODR |= (1 << 6);		//enable red
+			GPIOC->ODR &= ~(1 << 7);	//disable blue
+		}
+		else {
+			GPIOC->ODR &= ~(1 << 6);	//disable red
+			GPIOC->ODR |= (1 << 7);		//enable blue
+		}
+		
+		HAL_Delay(100);	//delay 100ms
+	}
 }
 
 
