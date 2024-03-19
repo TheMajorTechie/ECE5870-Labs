@@ -65,6 +65,26 @@ static void MX_USB_PCD_Init(void);
 
 /* Private user code ---------------------------------------------------------*/
 /* USER CODE BEGIN 0 */
+
+void LEDSetup() {	
+	//prepare red, blue, orange, & green LEDs
+	//set the lower bits for PC6/7/8/9 in moder register for general-purpose output mode
+	GPIOC->MODER |= ((1 << 12) | (1 << 14) | (1 << 16) | (1 << 18));
+	
+	//clear the bits for output type to put into push-pull
+	GPIOC->OTYPER &= ~((1 << 6) | (1 << 7) | (1 << 8) | (1 << 9));
+	
+	//clear the lower bits for the output speed register to put into low speed
+	GPIOC->OSPEEDR &= ~((1 << 12) | (1 << 14) | (1 << 16) | (1 << 18));
+	
+	//clear both upper and lower bits to set no pull-ups or pull-downs
+	GPIOC->PUPDR &= ~((1 << 12) | (1 << 13) | 
+										(1 << 14) | (1 << 15) | 
+										(1 << 16) | (1 << 17) |
+										(1 << 18) | (1 << 19)
+										);
+}
+
 void PrepareI2C2Transaction(uint32_t address, char RD_WRN, int numbytes) {
 	I2C2->CR2 &= ~((0x7F << 16) | (0x3FF << 0));	//clear NBYTES and ADD bitfields
 	
@@ -109,6 +129,25 @@ char TransmissionReadHelper(uint32_t address, int numbytes) {
 	}
 	return -1;	//return an error
 }
+
+uint16_t GetValueFromGyro(uint32_t devaddr, uint32_t lower, uint32_t upper) {
+		uint8_t x1, x2;
+	
+		//read x1
+		TransmissionWriteHelper(devaddr, 1, lower);
+		while(!(I2C2->ISR & I2C_ISR_TC));	//wait for TC
+		x1 = TransmissionReadHelper(devaddr, 1);
+		while(!(I2C2->ISR & I2C_ISR_TC));	//wait for TC
+		
+		//read x2
+		TransmissionWriteHelper(devaddr, 1, upper);
+		while(!(I2C2->ISR & I2C_ISR_TC));	//wait for TC
+		x2 = TransmissionReadHelper(devaddr, 1);
+		while(!(I2C2->ISR & I2C_ISR_TC));	//wait for TC
+	
+		return (x1 | x2 << 8);
+}
+
 /* USER CODE END 0 */
 
 /**
@@ -123,6 +162,9 @@ int main(void)
 	//enable GPIOB and GPIOC in the RCC
 	RCC->AHBENR |= RCC_AHBENR_GPIOBEN;
 	RCC->AHBENR |= RCC_AHBENR_GPIOCEN;
+	
+	//enable the I2C2 peripheral's system clock in the RCC
+	RCC->APB1ENR |= RCC_APB1ENR_I2C2EN;
 	
 	//set PB11 to alternate function mode, open-drain output type, and I2C2_SDA as alt funct
 	GPIOB->MODER = (GPIOB->MODER & (~(GPIO_MODER_MODER11)) | GPIO_MODER_MODER11_1);
@@ -147,25 +189,8 @@ int main(void)
 	GPIOC->OTYPER &= ~(1);
 	GPIOC->ODR |= 1;
 	
-	//prepare red, blue, orange, & green LEDs
-	//set the lower bits for PC6/7/8/9 in moder register for general-purpose output mode
-	GPIOC->MODER |= ((1 << 12) | (1 << 14) | (1 << 16) | (1 << 18));
-	
-	//clear the bits for output type to put into push-pull
-	GPIOC->OTYPER &= ~((1 << 6) | (1 << 7) | (1 << 8) | (1 << 9));
-	
-	//clear the lower bits for the output speed register to put into low speed
-	GPIOC->OSPEEDR &= ~((1 << 12) | (1 << 14) | (1 << 16) | (1 << 18));
-	
-	//clear both upper and lower bits to set no pull-ups or pull-downs
-	GPIOC->PUPDR &= ~((1 << 12) | (1 << 13) | 
-										(1 << 14) | (1 << 15) | 
-										(1 << 16) | (1 << 17) |
-										(1 << 18) | (1 << 19)
-										);
-	
-	//enable the I2C2 peripheral's system clock in the RCC
-	RCC->APB1ENR |= RCC_APB1ENR_I2C2EN;
+	//set up LEDs
+	LEDSetup();
 	
 	//now set the parameters in the TIMINGR register to use 100kHz standard mode I2C
 	//PRESC=1, SCLDEL=0x4, SDADEL=0x2, SCLH=0xF, SCLL=0x13
@@ -174,84 +199,19 @@ int main(void)
 	//enable I2C2 using PE bit in CR1 register
 	I2C2->CR1 |= I2C_CR1_PE;
 	
-	//set transaction params in CR2 register
-	/*	SADD[7:1]=slave address
-			NBYTES[7:0]=# of data bytes to be transmitted
-			RD_WRN=read/write
-			don't set AUTOEND bit
-			set START bit to begin address frame (do this LAST)
-	*/
+//begin part 1----------------------------------------------------------
 	
 	/******NOTES ON GYRO DEVICE
 	Device address is 0x69 instead of 0x6B
 	Value in who_am_i register is 0xD3 instead of 0xD4
 	*/
 	
-	//call a helper method to set up a transaction in write mode with the proper address
-	PrepareI2C2Transaction(0x69, 'w', 1);			
+	TransmissionWriteHelper(0x69, 1, 0xf);
+	while(!(I2C2->ISR & I2C_ISR_TC));
 	
-//	I2C2->CR2 &= ~((0x7F << 16) | (0x3FF << 0));	//clear NBYTES and ADD bitfields
-//	
-//	//set # of bytes to transmit=1, device address 0x69, RD_WRN to write, and start
-//	I2C2->CR2 |= ((1 << 16) | (0x69 << 1));
-//	//request a write
-//	I2C2->CR2 &= ~(1 << 10);
-//	
-//	//start
-//	I2C2->CR2 |= (1 << 13);
-	
-	//wait until either TXIS or NACKF flag set. if NACKF, this is an error state. 
-	while(!(I2C2->ISR & I2C_ISR_TXIS) & !(I2C2->ISR & I2C_ISR_NACKF)) 
-		;
-	
-	if(I2C2->ISR & I2C_ISR_TXIS) {	//check for TXIS bit set
-		GPIOC->ODR |= (1 << 7);			//set blue LED
+	if(TransmissionReadHelper(0x69, 1) == 0xd3) {
+		I2C2->CR2 |= (1 << 14);		//SET the stop bit in CR2 to release I2C bus
 	}
-	else if(I2C2->ISR & I2C_ISR_NACKF) {
-		GPIOC->ODR |= (1 << 6);			//set red LED
-	}
-	else {
-		GPIOC->ODR |=	(1 << 9);			//set green LED
-		GPIOC->ODR &= ~((1 << 6) | (1 << 7));	//clear both LEDs
-	}
-		
-	//write the address of the "WHO_AM_I" register into I2C transmit register
-	I2C2->TXDR |= (0xF);
-	
-	while(!(I2C2->ISR & I2C_ISR_TC)) 
-		;
-	
-	PrepareI2C2Transaction(0x69, 'r', 1);
-	
-
-	//wait until either RXNE or NACKF
-	while(!(I2C2->ISR & I2C_ISR_RXNE) & !(I2C2->ISR & I2C_ISR_NACKF))
-		;
-	
-	if(I2C2->ISR & I2C_ISR_RXNE) {
-		GPIOC->ODR |= (1 << 8);			//set orange LED
-	}
-	else if(I2C2->ISR & I2C_ISR_NACKF) {
-		GPIOC->ODR |= (1 << 6);			//set red LED
-	}
-	else {
-		GPIOC->ODR |=	(1 << 9);			//set green LED
-		GPIOC->ODR &= ~((1 << 6) | (1 << 8));	//clear both LEDs
-	}
-	
-	//if the transfer complete flag is set and the register contents
-	//matches the expected 0xD3 value, then turn off the blue LED
-	if(I2C2->ISR & I2C_ISR_RXNE) {
-		while(!(I2C2->ISR & I2C_ISR_TC))
-			;
-		if(I2C2->ISR & I2C_ISR_TC) {
-			if(I2C2->RXDR == 0xd3) {
-				I2C2->CR2 |= (1 << 14);		//SET the stop bit in CR2 to release I2C bus
-				GPIOC->ODR &= ~(1 << 7);
-			}
-		}
-	}
-	
 	
 	
 //part 2----------------------------------------------------------	
@@ -259,8 +219,7 @@ int main(void)
 	PrepareI2C2Transaction(0x69, 'w', 2);
 	
 	//wait for TXIS or NACKF flags
-	while(!(I2C2->ISR & I2C_ISR_TXIS) & !(I2C2->ISR & I2C_ISR_NACKF)) 
-		;
+	while(!(I2C2->ISR & I2C_ISR_TXIS) & !(I2C2->ISR & I2C_ISR_NACKF));
 	
 	if(I2C2->ISR & I2C_ISR_TXIS) {	//check for TXIS bit set
 		GPIOC->ODR |= (1 << 7);			//set blue LED for success
@@ -274,60 +233,29 @@ int main(void)
 		GPIOC->ODR &= ~((1 << 6) | (1 << 7));	//clear both LEDs
 	}
 	
-	while(!(I2C2->ISR & I2C_ISR_TXIS) & !(I2C2->ISR & I2C_ISR_NACKF)) 
-		;	//wait for flags again
+	while(!(I2C2->ISR & I2C_ISR_TXIS) & !(I2C2->ISR & I2C_ISR_NACKF));
 	if(I2C2->ISR & I2C_ISR_TXIS) {	//check for TXIS bit set
 		GPIOC->ODR |= (1 << 7);			//set blue LED for success
 		I2C2->TXDR = 0x0B;					//if success, write 1011 to CTRL_REG1 to set normal power mode, Xen and Yen
 	}
 	
 	//now wait for a transmit complete
-	while(!(I2C2->ISR & I2C_ISR_TC)) 
-		;
+	while(!(I2C2->ISR & I2C_ISR_TC));
 	
 	uint8_t x1, x2, y1, y2;		//SET up the partial x and y values for storage
 	int16_t x, y, x_dir, y_dir;		//complete x and y with direction
-	
-	
-	
 	
   while (1)
   {
 		//clear all LEDs
 		GPIOC->ODR &= ~((1 << 6) | (1 << 7) | (1 << 8) | (1 << 9));
 		
-		//read x1
-		TransmissionWriteHelper(0x69, 1, 0x28);
-		while(!(I2C2->ISR & I2C_ISR_TC));	//wait for TC
-		x1 = TransmissionReadHelper(0x69, 1);
-		while(!(I2C2->ISR & I2C_ISR_TC));	//wait for TC
-		
-		//read x2
-		TransmissionWriteHelper(0x69, 1, 0x29);
-		while(!(I2C2->ISR & I2C_ISR_TC));	//wait for TC
-		x2 = TransmissionReadHelper(0x69, 1);
-		while(!(I2C2->ISR & I2C_ISR_TC));	//wait for TC
-		
-		x = (x1 | x2 << 8);
+		//read x and y values
+		x = GetValueFromGyro(0x69, 0x28, 0x29);
 		x_dir += x;
 		
-		//read y1
-		TransmissionWriteHelper(0x69, 1, 0x2a);
-		while(!(I2C2->ISR & I2C_ISR_TC));	//wait for TC
-		y1 = TransmissionReadHelper(0x69, 1);
-		while(!(I2C2->ISR & I2C_ISR_TC));	//wait for TC
-		
-		//read y2
-		TransmissionWriteHelper(0x69, 1, 0x2b);
-		while(!(I2C2->ISR & I2C_ISR_TC));	//wait for TC
-		y2 = TransmissionReadHelper(0x69, 1);
-		while(!(I2C2->ISR & I2C_ISR_TC));	//wait for TC
-		
-		y = (y1 | y2 << 8);
+		y = GetValueFromGyro(0x69, 0x2a, 0x2b);
 		y_dir += y;
-		
-		
-		
 		
 		//orange & green
 		if(x_dir < 0) {
