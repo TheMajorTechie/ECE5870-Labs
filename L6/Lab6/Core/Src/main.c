@@ -146,6 +146,19 @@ void transmit_string(char* stringToSend) {
 	return;
 }
 
+// Sine Wave: 8-bit, 32 samples/cycle
+const uint8_t sine_table[32] = {127,151,175,197,216,232,244,251,254,251,244,
+232,216,197,175,151,127,102,78,56,37,21,9,2,0,2,9,21,37,56,78,102};
+// Triangle Wave: 8-bit, 32 samples/cycle
+const uint8_t triangle_table[32] = {0,15,31,47,63,79,95,111,127,142,158,174,
+190,206,222,238,254,238,222,206,190,174,158,142,127,111,95,79,63,47,31,15};
+// Sawtooth Wave: 8-bit, 32 samples/cycle
+const uint8_t sawtooth_table[32] = {0,7,15,23,31,39,47,55,63,71,79,87,95,103,
+111,119,127,134,142,150,158,166,174,182,190,198,206,214,222,230,238,246};
+// Square Wave: 8-bit, 32 samples/cycle
+const uint8_t square_table[32] = {254,254,254,254,254,254,254,254,254,254,
+254,254,254,254,254,254,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0};
+
 /* USER CODE END 0 */
 
 /**
@@ -162,10 +175,13 @@ int main(void)
 	RCC->AHBENR |= RCC_AHBENR_GPIOCEN;
 	RCC->AHBENR |= RCC_AHBENR_GPIOBEN;
 	RCC->APB2ENR |= RCC_APB2ENR_ADC1EN;	//enable the peripheral clock for the ADC
+	RCC->APB1ENR |= RCC_APB1ENR_DACEN;	//enable the peripheral clock for the DAC
 	LEDSetup();
 	USARTSetup();
 	
-//configure ADC
+	//ADC = PA0, DAC = PA4
+	
+//configure GPIOA's mode to analog function
 	GPIOA->MODER |= (3);
 	
 	//configure for 8 bit resolution, continuous conversion, software triggers only
@@ -176,6 +192,12 @@ int main(void)
 	//configure ADC channel to PA0
 	ADC1->CHSELR |= ADC_CHSELR_CHSEL0;	//configure ADC channel 0 (PA0)
 	
+	
+	DAC->CR |= (7 << 3);		//configure DAC to use software triggering
+	DAC->CR |= DAC_WAVE_NONE;	//DISABLE noise/triangle wave generation
+	DAC->CR |= DAC_CR_EN1;	//enable DAC channel 1 (PA4)
+
+	
 	//calibrate, enable, and start ADC
 	ADC1->CR |= ADC_CR_ADCAL;
 	while(ADC1->CR & ADC_CR_ADCAL);	//wait for calibration to finish
@@ -183,12 +205,14 @@ int main(void)
 	ADC1->CR |= ADC_CR_ADEN;
 	ADC1->CR |= ADC_CR_ADSTART;
 	
+	uint8_t wavetable_counter = 0;
+	
   while (1)
   {
-		transmit_string("test\n");
-		transmit_int(ADC1->DR);
-		transmit_string("\n");
-		HAL_Delay(500);
+		//transmit_string("test\n");
+		//transmit_int(ADC1->DR);
+		//transmit_string("\n");
+		//HAL_Delay(500);
 		
 		//read ADC data register (is 8 bit right aligned)
 		switch(ADC1->DR) {
@@ -208,6 +232,13 @@ int main(void)
 				GPIOC->ODR &= ~((1 << 6) | (1 << 7) | (1 << 8) | (1 << 9));
 				break;
 			}
+		
+			DAC1->DHR8R1 = sine_table[wavetable_counter];
+			if(wavetable_counter >= 31)
+				wavetable_counter = 0;
+			wavetable_counter++;
+			
+			HAL_Delay(1);
   }
   /* USER CODE END 3 */
 }
