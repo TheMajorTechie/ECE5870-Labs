@@ -1,0 +1,4 @@
+1. What gain parameters did you end up using for your PI controller?
+• Describe the response of the system to speed changes
+
+The gain parameters that I used were 5 for Ki and 7 for Kp. The response of the system to speed changes using these values was that the speed was able to change very rapidly with minimal overshooting or ripple effects.
